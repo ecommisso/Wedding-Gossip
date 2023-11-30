@@ -1,5 +1,6 @@
 import random
 
+RANDOM_TALK_PROB = 60
 class Player():
     def __init__(self, id, team_num, table_num, seat_num, unique_gossip, color, turns):
         self.id = id
@@ -249,7 +250,13 @@ class Player():
 
                 # check the OTHER side because we will have to talk to the RIGHT next turn for this condition
                 if (listen_count > 1 and self.action_counts[self.id]["talk"]["right"] > 0) or self.action_counts[self.id]["listen"]["left"] == 0:
-                    return 'talk', self.talk_actions[direction], gossip
+                    # return 'talk', self.talk_actions[direction], gossip
+
+                    rand_prob = random.randint(0, 100)
+                    if rand_prob < RANDOM_TALK_PROB:
+                        return 'talk', self.talk_actions[direction], gossip
+                    else:
+                        return 'listen', self.listen_actions[direction]
                 else:
                     return 'listen', self.listen_actions[direction]
 
@@ -288,7 +295,13 @@ class Player():
 
                 # check the OTHER side because we will have to talk to the LEFT next turn for this condition
                 if (listen_count > 1 and self.action_counts[self.id]["talk"]["left"] > 0) or self.action_counts[self.id]["listen"]["right"] <= 0:
-                    return 'talk', self.talk_actions[direction], gossip
+                    # return 'talk', self.talk_actions[direction], gossip
+
+                    rand_prob = random.randint(0, 100)
+                    if rand_prob < RANDOM_TALK_PROB:
+                        return 'talk', self.talk_actions[direction], gossip
+                    else:
+                        return 'listen', self.listen_actions[direction]
                 else:
                     return 'listen', self.listen_actions[direction]
 
@@ -328,11 +341,18 @@ class Player():
                 
                 if self.id == 34:
                     print("was def listen left")
-                # check the OTHER side because we will have to talk to the LEFT next turn for this condition
+                # check the SAME side because we will have to talk to the LEFT next turn for this condition
                 if (listen_count > 1 and self.action_counts[self.id]["talk"]["left"] > 0) or self.action_counts[self.id]["listen"]["right"] <= 0:
                     if self.id == 34:
                         print("is now talking in direction: ", self.talk_actions[direction])
-                    return 'talk', self.talk_actions[direction], gossip
+
+                    rand_prob = random.randint(0, 100)
+                    if rand_prob < RANDOM_TALK_PROB:
+                        return 'talk', self.talk_actions[direction], gossip
+                    else:
+                        return 'listen', self.listen_actions[direction]
+
+                    # return 'talk', self.talk_actions[direction], gossip
                 else:
                     if self.id == 34:
                         print("is now listening in direction: ", self.listen_actions[direction])
@@ -374,11 +394,16 @@ class Player():
 
                 if self.id == 34:
                     print("was def listen left")
-                # check the OTHER side because we will have to talk to the LEFT next turn for this condition
+                # check the SAME side because we will have to talk to the LEFT next turn for this condition
                 if (listen_count > 1 and self.action_counts[self.id]["talk"]["right"] > 0) or self.action_counts[self.id]["listen"]["left"] <= 0:
                     if self.id == 34:
                         print("is now talking in direction: ", self.talk_actions[direction])
-                    return 'talk', self.talk_actions[direction], gossip
+
+                    rand_prob = random.randint(0, 100)
+                    if rand_prob < RANDOM_TALK_PROB:
+                        return 'talk', self.talk_actions[direction], gossip
+                    else:
+                        return 'listen', self.listen_actions[direction]
                 else:
                     if self.id == 34:
                         print("is now listening in direction: ", self.listen_actions[direction])
@@ -414,6 +439,7 @@ class Player():
         gossip_in_range = [x for x in self.gossip_list if ceiling >= x >= floor]
         gossip_in_range.sort(reverse=True)
         neigh_dir = 1 if direction == 0 else -1
+        final_gos_list = list()
         for gos in gossip_in_range:
             known_count = 0
             for i in range(1, 4):
@@ -422,5 +448,8 @@ class Player():
                     if gos in self.player_gossip_map[target_player]:
                         known_count += 1
             if known_count < 2:
-                return gos
-        return max(self.gossip_list)
+                final_gos_list.append(gos)
+        # return max(self.gossip_list)
+        if len(final_gos_list) > 0:
+            return random.choice(final_gos_list)
+        return None
