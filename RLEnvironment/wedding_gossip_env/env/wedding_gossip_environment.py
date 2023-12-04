@@ -20,13 +20,13 @@ MOVE = 4
 NONE = 4
 
 # Reward Params
-ALPHA = .2
+ALPHA = 1
 BETA = 1
-GAMMA = 2
-DELTA = 1
+GAMMA = 10
+DELTA = 2
 
 # Truncation condition
-N_TURNS = 1000
+N_TURNS = 2048
 
 class WeddingGossipEnvironment(ParallelEnv):
     metadata = {"render_modes": ["human"], 
@@ -51,7 +51,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             zip(
                 self.agents,
                 [
-                    MultiDiscrete(np.array([100, 90] + [91 for _ in range(100)] + [3, 3]))
+                    MultiDiscrete(np.array([100, 90] + [91 for _ in range(100)] + [3, 3, 1001]))
                 ]
                 * 90,
             )
@@ -206,7 +206,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             # gossips = [(1 if g in self.agent_gossips[aid] else 0) for g in range(90)]
             # tbl = aid // 10
             # tbl_actions = [(obs_actions[self.agent_name_mapping[n]] if self.pos[self.agent_name_mapping[n]] // 10 == tbl else 4) for n in self.agents]
-            observations[a] = np.array([self.pos[aid], goss] + self.seating + [feedback[aid].count(True), feedback[aid].count(False)])
+            observations[a] = np.array([self.pos[aid], goss] + self.seating + [feedback[aid].count(True), feedback[aid].count(False), self.timestep])
 
         # Check termination conditions
         terminations = {agent: False for agent in self.agents}

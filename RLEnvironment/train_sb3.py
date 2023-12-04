@@ -16,33 +16,43 @@ def train_wedding(
 ):
     # Train a single model to play as each agent in a cooperative Parallel environment
     env = env_fn.WeddingGossipEnvironment(**env_kwargs)
-
     env.reset(seed=seed)
 
     print(f"Starting training on {str(env.metadata['name'])}.")
 
     env = ss.pettingzoo_env_to_vec_env_v1(env)
-    env = ss.concat_vec_envs_v1(env, 8, num_cpus=2, base_class="stable_baselines3")
+    env = ss.concat_vec_envs_v1(env, 60, num_cpus=20, base_class="stable_baselines3")
 
-    # Note: Waterworld's observation space is discrete (242,) so we use an MLP policy rather than CNN
-    model = PPO(
-        MlpPolicy,
-        env,
-        verbose=3,
-        learning_rate=1e-3,
-        batch_size=256,
-    )
+    ep_len = 2048 * 8
+    sess_path = Path(f'session_{str(uuid.uuid4())[:8]}')
+    num_cpu = 24
+    
+    checkpoint_callback = CheckpointCallback(save_freq=ep_len, save_path=sess_path, name_prefix='wedding')
 
-    model.learn(total_timesteps=steps)
+    learn_steps = 40
+    file_name = '' 
 
-    model.save(f"{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}")
+    if exists(file_name + '.zip'):
+        print('\nloading checkpoint')
+        model = PPO.load(file_name, env=env)
+        model.n_steps = ep_len
+    else:
+        model = PPO(
+            MlpPolicy,
+            env,
+            n_steps = ep_len
+            verbose=3,
+            learning_rate=1e-3,
+            batch_size=2048,
+        )
+    for i in range(learn_steps):
+        model.learn(total_timesteps=steps*num_cpu)
 
-    print("Model has been saved.")
+    # print("Model has been saved.")
 
     print(f"Finished training on {str(env.unwrapped.metadata['name'])}.")
 
     env.close()
-
 
 def eval(env_fn, num_games: int = 100, render_mode: str | None = None, **env_kwargs):
     # Evaluate a trained agent vs a random agent
@@ -95,7 +105,7 @@ if __name__ == "__main__":
     env_kwargs = {}
 
     # Train a model (takes ~3 minutes on GPU)
-    train_wedding(env_fn, steps=196_608, seed=0, **env_kwargs)
+    train_wedding(env_fn, steps=2048*8, seed=0, **env_kwargs)
 
     # Watch 2 games
     eval(env_fn, num_games=2, render_mode="human", **env_kwargs)
