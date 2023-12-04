@@ -141,7 +141,7 @@ class Player():
                 self.feedbacks
         )
         action, switch, pref = self.model.predict(observation)[0]
-        print(f"Player {self.id}: current gossip {curr_goss}, action space {action, switch, pref}")
+        # print(f"Player {self.id}: current gossip {curr_goss}, action space {action, switch, pref}")
 
         if switch and self.gossip_i < len(self.gossip_list) - 1:
             self.gossip_i += 1
