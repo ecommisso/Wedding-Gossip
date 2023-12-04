@@ -103,7 +103,7 @@ class WeddingGossipEnvironment(ParallelEnv):
         observations = {}
         gossip = random.sample(range(90), 90)
         for i, a in enumerate(self.agents):
-            obs = np.array([self.pos[i], gossip[i]] + self.seating + [0, 0])
+            obs = np.array([self.pos[i], gossip[i]] + self.seating + [0, 0, 0])
             observations[a] = obs
             self.agent_gossips[self.agent_name_mapping[a]].append(gossip[i])
 
