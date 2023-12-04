@@ -18,6 +18,10 @@ class Player():
         for i in range(90):
             self.player_gossip_map[i] = []
 
+        # self.gossip_retire_map = {}
+        # for i in range(90):
+        #     self.player_gossip_map[i] = 2
+
         self.turn_counter = 0
 
         # open seats
@@ -70,8 +74,8 @@ class Player():
         for player_action in player_actions:
             player, action = player_action
 
-            if player == 34:
-                print("player", player, "action", action)
+            # if player == 34:
+            #     print("player", player, "action", action)
 
             self.previous_action[player] = action
 
@@ -213,8 +217,8 @@ class Player():
                 return 'listen', self.listen_actions[direction]
             elif my_prev_action == "listen":
                 relevant_seats = left_seats if my_prev_direction == "left" else right_seats
-                if self.id == 34:
-                    print("was listen left")
+                # if self.id == 34:
+                #     print("was listen left")
                 # look at SAME side
                 neighbor_action_counts = self.get_neighbor_action_counts(players_by_seat, relevant_seats)
                 listen_count = neighbor_action_counts[0]
@@ -235,19 +239,19 @@ class Player():
 
                     return self.__move_to_empty_seat()
                 
-                if self.id == 34:
-                    print("was def listen left")
+                # if self.id == 34:
+                #     print("was def listen left")
                 # check the SAME side because we will have to talk to the LEFT next turn for this condition
                 if (listen_count > 1 and self.action_counts[self.id]["talk"][my_prev_direction] > 0) or self.action_counts[self.id]["listen"][opposite_direction] <= 0:
-                    if self.id == 34:
-                        print("is now talking in direction: ", self.talk_actions[direction])
+                    # if self.id == 34:
+                    #     print("is now talking in direction: ", self.talk_actions[direction])
 
                     rand_prob = random.randint(0, 100)
                     if rand_prob < RANDOM_TALK_PROB:
                         return 'talk', self.talk_actions[direction], gossip
 
-                if self.id == 34:
-                    print("is now listening in direction: ", self.listen_actions[direction])
+                # if self.id == 34:
+                #     print("is now listening in direction: ", self.listen_actions[direction])
                 return 'listen', self.listen_actions[direction]
                
     # returns tuple of (listen_count, talk_count) based on neighbors seats
@@ -298,7 +302,7 @@ class Player():
         # TODO: play around with value 30- currently every 30 turns, decrease range by 10 (i.e go from 70%-100% to 60%-90%)
         # TODO: decide of 30% range is best range to work with/do some math to justify the 30%
         # TODO: retiring gossip may be the way to go instead of this shifting range method so that we can achieve a perfect game in theory
-        ceiling = (1 - ((self.turn_counter // 30) * .1)) * 90  # start at 100% of 90, then drops to 90% of 90, etc. for top of range
+        ceiling = (1 - ((self.turn_counter // 45) * .1)) * 90  # start at 100% of 90, then drops to 90% of 90, etc. for top of range
         floor = ceiling - 27  # 30% of 90 is 27
         gossip_in_range = [x for x in self.gossip_list if ceiling >= x >= floor]
         gossip_in_range.sort(reverse=True)
@@ -320,3 +324,21 @@ class Player():
             return random.choice(final_gos_list)
 
         return max(self.gossip_list)
+
+    # def get_gossip_to_share_retire_attempt(self, direction):
+    #     potential_gossip = [x for x in self.gossip_list if self.gossip_retire_map[x] > 0]
+    #     potential_gossip.sort(reverse=True)
+    #     neigh_dir = 1 if direction == 0 else -1
+    #     for gos in potential_gossip:
+    #         known_count = 0
+    #         for i in range(1, 4):
+    #             target_player = self.seating_arrangement[(self.table_num, (self.seat_num - (neigh_dir * i)) % 10)]
+    #             if target_player != -1:
+    #                 if gos in self.player_gossip_map[target_player]:
+    #                     known_count += 1
+    #         if known_count < 2:
+    #             return gos
+    #
+    #     return max(self.gossip_list)
+
+
