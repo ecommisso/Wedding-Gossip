@@ -15,6 +15,7 @@ class Player():
         self.prev_gossip = [unique_gossip]
         self.unique_gossip = unique_gossip
         self.gossip_list = [unique_gossip]
+        self.good_gossips = [unique_gossip] # keep sorted desc
         self.group_score = 0
         self.individual_score = 0
         self.total_rounds = turns 
@@ -37,7 +38,6 @@ class Player():
         self.round_number +=1 
         self.move_counter +=1
 
-        pass 
 
     # At the end of a turn, players should be told what everybody at their current table (who was there at the start of the turn)
     # did (i.e., talked/listened in what direction, or moved)
@@ -193,29 +193,21 @@ class Player():
             return 'move', [[table1, seat1], [table2, seat2]]
     
     def feedback(self, feedback):
-        pass
+        listener_cnt = len(feedback)
+        # based on the feedback, retire the gossips that two other persons have already known
+        # remove from self.good_gossips
 
     def get_gossip(self, gossip_item, gossip_talker):
         #if you recieve an item of gossip, you can add to your list 
-        self.gossip_list.append(gossip_item)
+        self.good_gossips.append(gossip_item) # gossip_list added by simulator in wedding_gossip.py
+        self.good_gossips.sort(reverse=True)
 
     def get_heuristic(self):
         #aquire top gosip 
-        gossip = self.gossip_list
-        gossip.sort(reverse=True)
+        gossips = self.good_gossips
         #get top 5 vals if exist, else just average all 
-        g_sum = 0
-        g_count = len(gossip)
-        if g_count <=5:
-            for g in gossip:
-                g_sum+=g 
-            g_avg = g_sum/g_count 
-        else: #get top 5 
-            for g2 in gossip[:5]:
-                g_sum+=g2
-            g_avg = g_sum/5 
-
-        return g_avg 
+        g_cnt = min(len(gossips),5)
+        return sum(gossips[:g_cnt])/g_cnt
 
     def decide_torl(self,gossip_heuristic): #decide whether to talk or listen 
         #dunction balance between heuristic and round number 
@@ -238,8 +230,7 @@ class Player():
         if heuristic > thresh:
             #pick a value 
             #take top 1/3 of scores stored 
-            sorted_gossip = self.gossip_list
-            sorted_gossip.sort(reverse=True)
+            sorted_gossip = self.good_gossips
             top_vals = math.floor(len(sorted_gossip)/5)  #maybe as game goes on we adjust this?
             random_index = random.randint(0, top_vals)
             gossip_return = sorted_gossip[random_index]
