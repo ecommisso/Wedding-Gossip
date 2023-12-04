@@ -18,9 +18,11 @@ class Player():
         for i in range(90):
             self.player_gossip_map[i] = []
 
-        # self.gossip_retire_map = {}
-        # for i in range(90):
-        #     self.player_gossip_map[i] = 2
+        self.gossip_retire_map = {}
+        for i in range(91):
+            self.gossip_retire_map[i] = 3
+
+        self.cut_off = 60
 
         self.turn_counter = 0
 
@@ -147,6 +149,7 @@ class Player():
 
             # at this point, they should only have 1 piece of gossip
             if gossip:
+                self.recent_gossip_shared = gossip
                 return 'talk', self.talk_actions[direction], gossip
             return 'listen', self.listen_actions[direction]
 
@@ -212,6 +215,7 @@ class Player():
 
                     rand_prob = random.randint(0, 100)
                     if rand_prob < RANDOM_TALK_PROB:
+                        self.recent_gossip_shared = gossip
                         return 'talk', self.talk_actions[direction], gossip
 
                 return 'listen', self.listen_actions[direction]
@@ -248,6 +252,7 @@ class Player():
 
                     rand_prob = random.randint(0, 100)
                     if rand_prob < RANDOM_TALK_PROB:
+                        self.recent_gossip_shared = gossip
                         return 'talk', self.talk_actions[direction], gossip
 
                 # if self.id == 34:
@@ -290,21 +295,21 @@ class Player():
             result = feed.split(' ')
             if result[0] == "Nod" or result[0] == "Shake":
                 self.player_gossip_map[int(result[2])].append(self.recent_gossip_shared)
+                self.gossip_retire_map[self.recent_gossip_shared] -= 1
 
     # add learned gossip to our gossip list and to the gossip list of the player we received it from... to be used later
     def get_gossip(self, gossip_item, gossip_talker):
         self.gossip_list.append(gossip_item)
         self.player_gossip_map[gossip_talker].append(gossip_item)
 
-    # share gossip value within a range determined by turn count
+    # share gossip value above threshold value determined by turn count
     # if gossip is not known by at least 2 neighboring players, talk with high value, else talk with max gossip
+    # TODO: maybe mess around with how amount of times shared affects distribution instead of random selection
     def get_gossip_to_share(self, direction):
-        # TODO: play around with value 30- currently every 30 turns, decrease range by 10 (i.e go from 70%-100% to 60%-90%)
-        # TODO: decide of 30% range is best range to work with/do some math to justify the 30%
-        # TODO: retiring gossip may be the way to go instead of this shifting range method so that we can achieve a perfect game in theory
-        ceiling = (1 - ((self.turn_counter // 45) * .1)) * 90  # start at 100% of 90, then drops to 90% of 90, etc. for top of range
-        floor = ceiling - 27  # 30% of 90 is 27
-        gossip_in_range = [x for x in self.gossip_list if ceiling >= x >= floor]
+        dif = 27 + ((self.turn_counter // self.cut_off) * 9)
+        #ceiling = (1 - ((self.turn_counter // self.cut_off) * .1)) * 90  # start at 100% of 90, then drops to 90% of 90, etc. for top of range
+        floor = 90 - dif  # 30% of 90 is 27
+        gossip_in_range = [x for x in self.gossip_list if x >= floor]
         gossip_in_range.sort(reverse=True)
         neigh_dir = 1 if direction == 0 else -1
         final_gos_list = list()
@@ -315,17 +320,16 @@ class Player():
                 if target_player != -1:
                     if gos in self.player_gossip_map[target_player]:
                         known_count += 1
-            if known_count < 2:
+            if known_count < 3:
                 final_gos_list.append(gos)
 
         # Currently select random gossip within desired range
-        # TODO: should start with highest and select next highest based on how often shared/heard top gossip
         if len(final_gos_list) > 0:
             return random.choice(final_gos_list)
 
         return max(self.gossip_list)
 
-    # def get_gossip_to_share_retire_attempt(self, direction):
+    # def get_gossip_to_share(self, direction):
     #     potential_gossip = [x for x in self.gossip_list if self.gossip_retire_map[x] > 0]
     #     potential_gossip.sort(reverse=True)
     #     neigh_dir = 1 if direction == 0 else -1
@@ -336,7 +340,7 @@ class Player():
     #             if target_player != -1:
     #                 if gos in self.player_gossip_map[target_player]:
     #                     known_count += 1
-    #         if known_count < 2:
+    #         if known_count < 3:
     #             return gos
     #
     #     return max(self.gossip_list)
