@@ -51,11 +51,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             zip(
                 self.agents,
                 [
-<<<<<<< HEAD
-                    MultiDiscrete(np.array([100, 90] + [91 for _ in range(100)] + [3, 3, 1001]))
-=======
-                    MultiDiscrete(np.array([100, 90] + [91 for _ in range(100)] + [4, 4]))
->>>>>>> 848f476bb97e52fa3a8b5c9752cdfe2e769ec601
+                    MultiDiscrete(np.array([100, 90] + [91 for _ in range(100)] + [4, 4, 2049]))
                 ]
                 * 90,
             )
