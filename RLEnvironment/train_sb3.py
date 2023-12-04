@@ -46,7 +46,7 @@ def train_wedding(
             batch_size=2048,
         )
     for i in range(learn_steps):
-        model.learn(total_timesteps=steps*num_cpu)
+        model.learn(total_timesteps=steps*num_cpu, callback=checkpoint_callback)
 
     # print("Model has been saved.")
 
