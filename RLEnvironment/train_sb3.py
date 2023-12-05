@@ -36,13 +36,13 @@ def train_wedding(
     
     checkpoint_callback = CheckpointCallback(save_freq=max(ep_len//num_cpu, 1), save_path=sess_path, name_prefix='wedding')
 
-    learn_steps = 10
-    file_name = '' 
+    learn_steps = 1
+    file_name = ''
 
     if os.path.exists(file_name + '.zip'):
         print('\nloading checkpoint')
         model = PPO.load(file_name, env=env)
-        model.n_steps = ep_len
+        model.rollout_buffer.reset()
     else:
         model = PPO(
             MlpPolicy,
@@ -53,8 +53,6 @@ def train_wedding(
         )
     for i in range(learn_steps):
         model.learn(total_timesteps=steps*num_cpu*900, callback=checkpoint_callback)
-
-    # print("Model has been saved.")
 
     print(f"Finished training on {str(env.unwrapped.metadata['name'])}.")
 
@@ -69,9 +67,10 @@ def eval(env_fn, num_games: int = 100, render_mode: str | None = None, **env_kwa
         f"\nStarting evaluation on {str(env.metadata['name'])} (num_games={num_games}, render_mode={render_mode})"
     )
 
+    file_name = 'session_a1a031b2/'
     try:
         latest_policy = max(
-            glob.glob(f"{env.metadata['name']}*.zip"), key=os.path.getctime
+            glob.glob(f"{file_name}wedding_*.zip"), key=os.path.getctime
         )
     except ValueError:
         print("Policy not found.")
@@ -113,4 +112,4 @@ if __name__ == "__main__":
     train_wedding(env_fn, steps=2048*8, seed=0, **env_kwargs)
 
     # Watch 2 games
-    # eval(env_fn, num_games=1, render_mode="human", **env_kwargs)
+    eval(env_fn, num_games=1, render_mode="human", **env_kwargs)
