@@ -1,6 +1,6 @@
 import random
-import heapq
 import math 
+from collections import defaultdict
 
 
 class Player():
@@ -16,6 +16,8 @@ class Player():
         self.unique_gossip = unique_gossip
         self.gossip_list = [unique_gossip]
         self.good_gossips = [unique_gossip] # keep sorted desc
+        self.old_gossip_cnt = defaultdict(int)
+        self.last_gsp_shared = None
         self.group_score = 0
         self.individual_score = 0
         self.total_rounds = turns 
@@ -193,9 +195,16 @@ class Player():
             return 'move', [[table1, seat1], [table2, seat2]]
     
     def feedback(self, feedback):
-        listener_cnt = len(feedback)
-        # based on the feedback, retire the gossips that two other persons have already known
+        # based on the feedback, retire the gossips that three consecutive other persons have already known
         # remove from self.good_gossips
+        for feed in feedback:
+            if feed[0]=='S': # shake head- already known gossip
+                self.old_gossip_cnt[self.last_gsp_shared] += 1
+            elif feed[0]=='N': # nod head- not learnt; reset counter
+                self.old_gossip_cnt[self.last_gsp_shared] = 0
+        if self.old_gossip_cnt[self.last_gsp_shared] >= 3 and\
+            len(self.good_gossips)>=2:
+            self.good_gossips.remove(self.last_gsp_shared)
 
     def get_gossip(self, gossip_item, gossip_talker):
         #if you recieve an item of gossip, you can add to your list 
@@ -235,6 +244,7 @@ class Player():
             random_index = random.randint(0, top_vals)
             gossip_return = sorted_gossip[random_index]
             #print("the gossip value player number " + str(self.id) + " is sharing is:" + str(gossip_return))
+            self.last_gsp_shared = gossip_return
             return 'talk', gossip_return
         #otherwise generate a ratio of listen to move
         #ideally a split of about 20 speakers, 60 listerns, and 10 movers 
@@ -243,6 +253,7 @@ class Player():
         '''decision = random.randint(0, 70)
         if decision <= 10:
             return 'move',0'''
+        self.last_gsp_shared = None
         return 'listen',0
 
         
