@@ -284,7 +284,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             self.pos_mem[i] = self.pos[i], self.pos_mem[i][0]
 
     def _get_curr_state(self):
-        state = np.array([])
+        state = np.array([], dtype=np.int64)
         for i in range(100):
             seat_state = [0, self.seating[i], self.obs_actions[i]]
             state = np.concatenate((state, seat_state))
