@@ -172,6 +172,7 @@ class WeddingGossipEnvironment(ParallelEnv):
                     while i < len(self.agent_gossips[aid]) and self.agent_gossips[aid][i] > heard_gossip:
                         i += 1
                     self.agent_gossips[aid].insert(i, heard_gossip)
+                    self.curr_gossips[aid] = 0
                 for g, i in possible_gossips:
                     feedback[i].append((g == heard_gossip))
                 rewards[agent] += (heard_gossip + 1) * ALPHA
@@ -206,12 +207,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             # gossips = [(1 if g in self.agent_gossips[aid] else 0) for g in range(90)]
             # tbl = aid // 10
             # tbl_actions = [(obs_actions[self.agent_name_mapping[n]] if self.pos[self.agent_name_mapping[n]] // 10 == tbl else 4) for n in self.agents]
-<<<<<<< HEAD
             observations[a] = np.array([self.pos[aid], goss] + self.seating + [feedback[aid].count(True), feedback[aid].count(False), self.timestep])
-=======
-            print(feedback[aid])
-            observations[a] = np.array([self.pos[aid], goss] + self.seating + [feedback[aid].count(True), feedback[aid].count(False)])
->>>>>>> 848f476bb97e52fa3a8b5c9752cdfe2e769ec601
 
         # Check termination conditions
         terminations = {agent: False for agent in self.agents}
