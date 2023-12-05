@@ -51,11 +51,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             zip(
                 self.agents,
                 [
-<<<<<<< HEAD
-                    MultiDiscrete(np.array([100, 90] + [91 for _ in range(100)] + [3, 3, 1001]))
-=======
-                    MultiDiscrete(np.array([100, 90] + [91 for _ in range(100)] + [4, 4]))
->>>>>>> 848f476bb97e52fa3a8b5c9752cdfe2e769ec601
+                    MultiDiscrete(np.array([100, 90] + [91 for _ in range(100)] + [4, 4, 2049]))
                 ]
                 * 90,
             )
@@ -103,7 +99,7 @@ class WeddingGossipEnvironment(ParallelEnv):
         observations = {}
         gossip = random.sample(range(90), 90)
         for i, a in enumerate(self.agents):
-            obs = np.array([self.pos[i], gossip[i]] + self.seating + [0, 0])
+            obs = np.array([self.pos[i], gossip[i]] + self.seating + [0, 0, 0])
             observations[a] = obs
             self.agent_gossips[self.agent_name_mapping[a]].append(gossip[i])
 
@@ -210,12 +206,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             # gossips = [(1 if g in self.agent_gossips[aid] else 0) for g in range(90)]
             # tbl = aid // 10
             # tbl_actions = [(obs_actions[self.agent_name_mapping[n]] if self.pos[self.agent_name_mapping[n]] // 10 == tbl else 4) for n in self.agents]
-<<<<<<< HEAD
             observations[a] = np.array([self.pos[aid], goss] + self.seating + [feedback[aid].count(True), feedback[aid].count(False), self.timestep])
-=======
-            print(feedback[aid])
-            observations[a] = np.array([self.pos[aid], goss] + self.seating + [feedback[aid].count(True), feedback[aid].count(False)])
->>>>>>> 848f476bb97e52fa3a8b5c9752cdfe2e769ec601
 
         # Check termination conditions
         terminations = {agent: False for agent in self.agents}

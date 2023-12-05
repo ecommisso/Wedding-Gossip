@@ -4,11 +4,14 @@ import glob
 import os
 import time
 
+from os.path import exists
+from pathlib import Path
+import uuid
 import supersuit as ss
 from stable_baselines3 import PPO
 from stable_baselines3.ppo import MlpPolicy
 from pettingzoo.utils import parallel_to_aec
-
+from stable_baselines3.common.callbacks import CheckpointCallback
 from wedding_gossip_env import wedding_gossip_environment_v2
 
 
@@ -103,7 +106,7 @@ if __name__ == "__main__":
     env_fn = wedding_gossip_environment_v2
     env_kwargs = {}
 
-    learn_steps = 5
+    # learn_steps = 5
     # Train a model (takes ~3 minutes on GPU)
     train_wedding(env_fn, steps=2048*8, seed=0, **env_kwargs)
 
