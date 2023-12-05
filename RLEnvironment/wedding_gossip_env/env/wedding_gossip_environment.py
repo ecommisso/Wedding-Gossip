@@ -37,7 +37,7 @@ class WeddingGossipEnvironment(ParallelEnv):
         self.agent_name_mapping = dict(
             zip(self.possible_agents, 
                 list(range(len(self.possible_agents)))
-            )
+               )
         )
         self.render_mode = render_mode
         
@@ -48,7 +48,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             zip(
                 self.agents,
                 [
-                    MultiDiscrete(np.array([90, 2048] + [3, 91, 5] * 100 * 3))
+                    MultiDiscrete(np.array([90, 2049] + [3, 91, 5] * 100 * 3))
                 ]
                 * 90,
             )
