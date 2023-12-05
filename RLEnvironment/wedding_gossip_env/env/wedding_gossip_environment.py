@@ -20,7 +20,7 @@ MOVE = 4
 NONE = 4
 
 # Reward Params
-EXPLR = 1
+EXPLORE = 1
 
 # Truncation condition
 N_TURNS = 2048
@@ -100,6 +100,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             self.agent_gossips[aid].append(gossip[i])
 
         self.mem_buf = np.array([0, 90, 4] * 200)
+        self.pos_mem = [(None, None) for _ in range(90)] 
 
         self.state = self._get_curr_state()
 
@@ -110,8 +111,12 @@ class WeddingGossipEnvironment(ParallelEnv):
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
         infos = {a: {} for a in self.agents}
 
-        # update memory buffer
-        self.mem_buf = np.concatenate((self.state, self.mem_buf[:300]))
+        self._update_memory()
+
+        #self.render()
+        #print(observations["player_0"][:2])
+        #for i in range(10):
+        #    print(observations["player_0"][2+i*3*10:2+(i+1)*3*10])
 
         return observations, infos
 
@@ -165,7 +170,7 @@ class WeddingGossipEnvironment(ParallelEnv):
                 possible_gossips = []
                 for n in neighbors:
                     n_act = actions["player_" + str(n)][0]
-                    n_goss = self.agent_gossips[n][self.curr_gossips[n]]
+                    n_goss = self.agent_gossips[n][self.gossip_idx[n]]
                     complement = 2 if act == 1 else 3
                     if n_act == complement:
                         if n_goss in self.agent_gossips[aid]:
@@ -179,13 +184,13 @@ class WeddingGossipEnvironment(ParallelEnv):
                     while i < len(self.agent_gossips[aid]) and self.agent_gossips[aid][i] > heard:
                         i += 1
                     self.agent_gossips[aid].insert(i, heard)
-                    self.gossip_idx = min(self.gossip_idx, i)
+                    self.gossip_idx[aid] = min(self.gossip_idx[aid], i)
                     
                     share = actions["player_" + str(nbr)][2]
                     rewards[agent] += self._get_listen_reward(heard, share)
 
                 for g, nbr in possible_gossips:
-                    feedback[nbr].append((g == heard_gossip))
+                    feedback[nbr].append((g == heard))
             # talk 
             elif act < 4:
                 goss = self.agent_gossips[aid][self.gossip_idx[aid]]
@@ -203,7 +208,8 @@ class WeddingGossipEnvironment(ParallelEnv):
         # resolve moves
         random.shuffle(moves)
         for aid, pref in moves:
-            rewards["player_" + str(aid)] += EXPLORE if self._move_player(aid, pref)
+            if self._move_player(aid, pref):
+                rewards["player_" + str(aid)] += EXPLORE 
 
         self.state = self._get_curr_state()
 
@@ -225,8 +231,20 @@ class WeddingGossipEnvironment(ParallelEnv):
         else:
             infos = {a: {} for a in self.agents}
 
-        self.render()
+        self._update_memory()
 
+        #self.render()
+        #print("curr")
+        #print(observations["player_0"][:2])
+        #for i in range(10):
+        #    print(observations["player_0"][2+i*3*10:2+(i+1)*3*10])
+        #print("prev")
+        #for i in range(10,20):
+        #    print(observations["player_0"][2+i*3*10:2+(i+1)*3*10])
+        #print("prev2")
+        #for i in range(20,30):
+        #    print(observations["player_0"][2+i*3*10:2+(i+1)*3*10])
+#
         return observations, rewards, terminations, truncations, infos
 
     def render(self):
@@ -236,7 +254,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             table = []
             for j in range(i*10,(i+1)*10):
                 player = self.seating[j]
-                move = self.obs_actions[player] if player < 90 else 4
+                move = self.obs_actions[player]
                 table.append((player, move))
             print(f'Table {i}: {table}')
         print("===== GOSSIP INVENTORY =====")
@@ -260,6 +278,11 @@ class WeddingGossipEnvironment(ParallelEnv):
         """
         return self.action_spaces[agent]
 
+    def _update_memory(self):
+        self.mem_buf = np.concatenate((self.state, self.mem_buf[:300]))
+        for i in range(90):
+            self.pos_mem[i] = self.pos[i], self.pos_mem[i][0]
+
     def _get_curr_state(self):
         state = np.array([])
         for i in range(100):
@@ -278,19 +301,22 @@ class WeddingGossipEnvironment(ParallelEnv):
 
     def _get_agent_obs(self, aid):
         obs = np.concatenate((
-            self.agent_gossips[self.gossip_idx[aid]],
-            self.timestep,
+            [self.agent_gossips[aid][self.gossip_idx[aid]]],
+            [self.timestep],
             self.state,
             self.mem_buf
         ))
         # set is_neighbor bit
-        for nbr in range(1,4):
-            lnbr = (self.pos[aid] // 10 * 10) + ((self.pos[aid] - nbr) % 10)
-            rnbr = (self.pos[aid] // 10 * 10) + ((self.pos[aid] + nbr) % 10)
-            obs[2 + lnbr * 3] = 1
-            obs[2 + rnbr * 3] = 1
+        hist = self.pos[aid], self.pos_mem[aid][0], self.pos_mem[aid][0]
+        for i, p in enumerate(hist):
+            if p:
+                for nbr in range(1,4):
+                    lnbr = (p // 10 * 10) + ((p - nbr) % 10)
+                    rnbr = (p // 10 * 10) + ((p + nbr) % 10)
+                    obs[2 + lnbr * 3 + i * 300] = 1
+                    obs[2 + rnbr * 3 + i * 300] = 1
 
-        obs[2 + self.pos[aid]] = 2
+                obs[2 + p * 3 + i * 300] = 2
 
         return obs
 
@@ -351,4 +377,4 @@ class WeddingGossipEnvironment(ParallelEnv):
 
 if __name__ == "__main__":
     env = WeddingGossipEnvironment()
-    parallel_api_test(env, num_cycles=1_000_000)
+    parallel_api_test(env, num_cycles=1_000)
