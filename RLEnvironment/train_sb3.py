@@ -50,6 +50,7 @@ def train_wedding(
             verbose=3,
             learning_rate=1e-3,
             batch_size=512,
+            tensorboard_log = "./wedding_v3_tb/"
         )
     for i in range(learn_steps):
         model.learn(total_timesteps=steps*num_cpu*900, callback=checkpoint_callback)
