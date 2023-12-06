@@ -1,6 +1,6 @@
 import random
-import heapq
 import math 
+from collections import defaultdict
 
 
 class Player():
@@ -15,9 +15,14 @@ class Player():
         self.prev_gossip = [unique_gossip]
         self.unique_gossip = unique_gossip
         self.gossip_list = [unique_gossip]
+        self.good_gossips = [unique_gossip] # keep sorted desc
+        self.old_gossip_cnt = defaultdict(int)
+        self.last_gsp_shared = None
         self.group_score = 0
         self.individual_score = 0
         self.total_rounds = turns 
+        self.table_talk_count = 0 
+
         #dictionary template -> dict3 = {'gossip_shared': '15,16,77', 'gossip_score': 55}
         #dictionary_temp = {'gossip_shared': [], 'gossip_score': unique_gossip}
         #list of dictionaries 
@@ -37,7 +42,6 @@ class Player():
         self.round_number +=1 
         self.move_counter +=1
 
-        pass 
 
     # At the end of a turn, players should be told what everybody at their current table (who was there at the start of the turn)
     # did (i.e., talked/listened in what direction, or moved)
@@ -53,7 +57,15 @@ class Player():
         #except:
             #print("there are no player actions ")
         #if action != "":
-            
+        # list of lists, each of which is [player_id, action_type, direction] (CCW = right, CW = left)
+        numtalk = 0
+        for play in player_actions:
+            action = play[1][0]
+            #print("action is")
+            #print(action)
+            if action == "talk":
+                numtalk += 1
+        self.table_talk_count = numtalk
         
         
         '''my_action = "talk"
@@ -193,33 +205,49 @@ class Player():
             return 'move', [[table1, seat1], [table2, seat2]]
     
     def feedback(self, feedback):
-        pass
+        # based on the feedback, retire the gossips that three consecutive other persons have already known
+        # remove from self.good_gossips
+        for feed in feedback:
+            if feed[0]=='S': # shake head- already known gossip
+                self.old_gossip_cnt[self.last_gsp_shared] += 1
+            elif feed[0]=='N': # nod head- not learnt; reset counter
+                self.old_gossip_cnt[self.last_gsp_shared] = 0
+        if self.old_gossip_cnt[self.last_gsp_shared] >= 3 and\
+            len(self.good_gossips)>=2:
+            self.good_gossips.remove(self.last_gsp_shared)
 
     def get_gossip(self, gossip_item, gossip_talker):
         #if you recieve an item of gossip, you can add to your list 
-        self.gossip_list.append(gossip_item)
+        self.good_gossips.append(gossip_item) # gossip_list added by simulator in wedding_gossip.py
+        self.good_gossips.sort(reverse=True)
 
     def get_heuristic(self):
         #aquire top gosip 
-        gossip = self.gossip_list
-        gossip.sort(reverse=True)
+        gossips = self.good_gossips
         #get top 5 vals if exist, else just average all 
-        g_sum = 0
-        g_count = len(gossip)
-        if g_count <=5:
-            for g in gossip:
-                g_sum+=g 
-            g_avg = g_sum/g_count 
-        else: #get top 5 
-            for g2 in gossip[:5]:
-                g_sum+=g2
-            g_avg = g_sum/5 
-
-        return g_avg 
+        g_cnt = min(len(gossips),5)
+        return sum(gossips[:g_cnt])/g_cnt
 
     def decide_torl(self,gossip_heuristic): #decide whether to talk or listen 
         #dunction balance between heuristic and round number 
         #if gossip_heuristic is higher 
+        #print("this is the special case where table count is " + str(self.table_talk_count) )
+        if self.table_talk_count > 6: 
+            '''getting too high so random'''
+            decision = random.randint(0, 60)
+            if decision > 20:
+                #print("this is the special case")
+                return 'listen', 0   
+            else:
+                sorted_gossip = self.good_gossips
+                top_vals = math.floor(len(sorted_gossip)/5)  #maybe as game goes on we adjust this?
+                random_index = random.randint(0, top_vals)
+                gossip_return = sorted_gossip[random_index]
+                #print("the gossip value player number " + str(self.id) + " is sharing is:" + str(gossip_return))
+                self.last_gsp_shared = gossip_return
+                return 'talk', gossip_return
+
+
         round_num = self.round_number
         thresh_value = 45 
         #right now linear - but may make more logarithmic or exponential 
@@ -229,21 +257,23 @@ class Player():
         #to allow for range of 27 cuz acerage of top has a max of about 88
         #once we get a round number 
         #increment = 27/numrounds 
-        increment = float(float(7.25)/self.total_rounds)
+        #increment = float(float(30)/(self.total_rounds**5))
+        increment = float(float(7.25)/(self.total_rounds))
         #increment = .15 
         #print("the value of the increment is " + str(increment))
-        thresh = thresh_value + increment*round_num
+        #thresh = thresh_value + increment*(round_num**5)
+        thresh = thresh_value + increment*(round_num)
         #print("this is the value:" + str(heuristic))
-        #print("this is the thresh value:" + str(thresh))'''
+        #print("this is the thresh value:" + str(thresh))
         if heuristic > thresh:
             #pick a value 
             #take top 1/3 of scores stored 
-            sorted_gossip = self.gossip_list
-            sorted_gossip.sort(reverse=True)
+            sorted_gossip = self.good_gossips
             top_vals = math.floor(len(sorted_gossip)/5)  #maybe as game goes on we adjust this?
             random_index = random.randint(0, top_vals)
             gossip_return = sorted_gossip[random_index]
             #print("the gossip value player number " + str(self.id) + " is sharing is:" + str(gossip_return))
+            self.last_gsp_shared = gossip_return
             return 'talk', gossip_return
         #otherwise generate a ratio of listen to move
         #ideally a split of about 20 speakers, 60 listerns, and 10 movers 
@@ -252,6 +282,7 @@ class Player():
         '''decision = random.randint(0, 70)
         if decision <= 10:
             return 'move',0'''
+        self.last_gsp_shared = None
         return 'listen',0
 
         
