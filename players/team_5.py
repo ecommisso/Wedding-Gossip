@@ -139,6 +139,7 @@ class Player():
 
         action, switch, _ = self.model.predict(observation)[0]
 
+        i = self.gossip_i
         if switch == 1:
             self.gossip_i = min(len(self.gossip_list) - 1, i + 1)
         elif switch == 2:
