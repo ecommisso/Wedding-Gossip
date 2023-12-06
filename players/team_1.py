@@ -327,7 +327,7 @@ class Player():
         if len(final_gos_list) > 0:
             return random.choice(final_gos_list)
 
-        return random.choice(gossip_in_range)
+        return random.choice(self.gossip_list)
 
     # def get_gossip_to_share(self, direction):
     #     potential_gossip = [x for x in self.gossip_list if self.gossip_retire_map[x] > 0]
