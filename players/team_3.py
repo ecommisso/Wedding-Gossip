@@ -43,6 +43,8 @@ class Player():
         self.last_action = "none" #stores our last action
         self.retireCount = {}
 
+        self.track_gossip_value = {self.unique_gossip: self.unique_gossip}
+
         #add in memory (dictionary, key: player id, array: list of actions ("listen/speak", "gossip value")
 
     # At the beginning of a turn, players should be told who is sitting where, so that they can use that info to decide if/where to move
@@ -111,6 +113,7 @@ class Player():
                         if player[1] == True:
                             value = ("talk", gossip)
                             self.add_to_memory(player[0], value)
+                            self.track_retirement(gossip)
             
             elif(self.last_direction=="right"):
                     nearbyPlayers = self.get_nearby_players(seat_dictionaryR[self.seat_num], self.table_num)
@@ -118,6 +121,7 @@ class Player():
                         if player[1] == True:
                             value = ("talk", gossip)
                             self.add_to_memory(player[0], value)
+                            self.track_retirement(gossip)
             
 
     def add_to_memory(self, key, value):
@@ -137,52 +141,13 @@ class Player():
         #maxGossipRange = 2 if self.priorityGossip.qsize() > 2 else 0
         #gossipNum = random.randint(0, maxGossipRange)
 
-        index = self.priorityGossip.qsize()-1
-        gossip = self.priorityGossip.queue[index]
-        shared = {}
-
-        gossipPQueue = PriorityQueue()
-        gossipPQueue.put((gossip,-gossip)) 
-        for player in players:
-            if(player in self.memory):
-                for i in range(0,len(self.memory[player])):
-                    if self.memory[player][i][0] == "talk":
-                        if self.memory[player][i][1] in shared:
-                            currCount = shared[(self.memory[player][i][1])]
-                            shared[(self.memory[player][i][1])] = currCount + 1
-                        else:
-                            shared[(self.memory[player][i][1])] = 1
-
-        while(index!=0):
-                index-=1
-                gossip = self.priorityGossip.queue[index]
-                if gossip in shared:
-                    currCount = shared[gossip]
-                    gossipPQueue.put((currCount, -gossip))
-                else:
-                    gossipPQueue.put((0, -gossip))
-
-        retired = True
-        while retired:
-            if gossipPQueue.qsize() > 0:
-                bestGossip = gossipPQueue.get()
-                gossip = -bestGossip[1]
-
-                if gossip in self.retireCount:
-                    if self.retireCount[gossip] < 4:
-                        retired = False
-                else:
-                    retired = False
-            else:
-                return self.currGossip
-
-        if gossip in self.retireCount:
-            currCount = self.retireCount[gossip]
-            self.retireCount[gossip] = currCount + 1
-        else:
-            self.retireCount[gossip] = 1
-                    
-        return gossip
+       values_ = list(self.track_gossip_value.values())
+       if sum(values_) == 0:
+           gossip = random.choice(list(self.track_gossip_value.keys()))
+       else:
+           gossip = list(self.track_gossip_value.keys())[-1]
+      
+       return gossip
                     
 
     def get_action(self):
@@ -203,7 +168,7 @@ class Player():
             return 'move', self.emptySeats
 
         # talk
-        if self.currGossip/180 > random.random():
+        if self.currGossip/360 < random.random():
 
             # left
             if direction == 0:
@@ -256,16 +221,28 @@ class Player():
         self.add_to_memory(gossip_talker, value)
 
         self.priorityGossip.put(gossip_item)
+        self.track_retirement(gossip_item)
         self.heardPlayers.append(gossip_talker)
         self.currGossip = self.priorityGossip.queue[self.priorityGossip.qsize()-1]
 
         pass
     
-    def decide_to_talk(self, gossip): #decide whether to talk or listen 
-        threshold = 40
-        heuristic = gossip + .125*self.turns
-        if heuristic > threshold:
-            return True
-        return False
     
+    def track_retirement(self, key_):
+       if key_ not in self.track_gossip_value:
+           if self.turns <= (self.totalTurns*.25):
+               self.track_gossip_value[key_] = key_
+           elif self.turns <= (self.totalTurns*.5) and self.turns > (self.totalTurns*.25):
+               self.track_gossip_value[key_] = int (key_*.75)
+           elif self.turns <= (self.totalTurns*.75) and self.turns > (self.totalTurns*.5):
+               self.track_gossip_value[key_] = int (key_*.5)
+           else:
+               self.track_gossip_value[key_] = int (key_*.25)
+       else:
+           value_ = self.track_gossip_value[key_]
+           new_value_ = int(value_*0.50)
+           self.track_gossip_value[key_] = new_value_
 
+
+       self.track_gossip_value = dict(sorted(self.track_gossip_value.items(), key=lambda item: item[1]))
+       #print(self.track_gossip_value)
