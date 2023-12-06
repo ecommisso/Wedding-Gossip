@@ -31,10 +31,10 @@ def train_wedding(
     env = ss.pettingzoo_env_to_vec_env_v1(env)
     env = ss.concat_vec_envs_v1(env, num_cpu, num_cpus=num_cpu, base_class="stable_baselines3")
 
-    ep_len = 2048 * 8
+    ep_len = 1024
     sess_path = Path(f'session_{str(uuid.uuid4())[:8]}')
     
-    checkpoint_callback = CheckpointCallback(save_freq=max(ep_len//num_cpu, 1), save_path=sess_path, name_prefix='wedding')
+    checkpoint_callback = CheckpointCallback(save_freq=ep_len, save_path=sess_path, name_prefix='wedding_v3_4')
 
     learn_steps = 1
     file_name = ''
@@ -48,12 +48,12 @@ def train_wedding(
             MlpPolicy,
             env,
             verbose=3,
-            learning_rate=1e-3,
-            batch_size=512,
-            tensorboard_log = "./wedding_v3_tb/"
+            learning_rate=2.5e-4,
+            batch_size=32,
+            tensorboard_log = "./wedding_v3_4_tb/"
         )
     for i in range(learn_steps):
-        model.learn(total_timesteps=steps*num_cpu*900, callback=checkpoint_callback)
+        model.learn(total_timesteps=steps*num_cpu*270, progress_bar=True, callback=checkpoint_callback)
 
     print(f"Finished training on {str(env.unwrapped.metadata['name'])}.")
 
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     env_kwargs = {}
 
     # Train a model (takes ~3 minutes on GPU)
-    # train_wedding(env_fn, steps=2048*8, seed=0, **env_kwargs)
+    train_wedding(env_fn, steps=1024, seed=0, **env_kwargs)
 
     # Watch 2 games
     eval(env_fn, num_games=5, render_mode="human", **env_kwargs)

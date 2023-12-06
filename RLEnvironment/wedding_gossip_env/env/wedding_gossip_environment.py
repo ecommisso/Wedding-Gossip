@@ -307,7 +307,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             self.mem_buf
         ))
         # set is_neighbor bit
-        hist = self.pos[aid], self.pos_mem[aid][0], self.pos_mem[aid][0]
+        hist = self.pos[aid], self.pos_mem[aid][0], self.pos_mem[aid][1]
         for i, p in enumerate(hist):
             if p:
                 for nbr in range(1,4):
