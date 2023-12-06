@@ -3,12 +3,18 @@ from __future__ import annotations
 import glob
 import os
 import time
+import uuid
+from pathlib import Path
 
+from os.path import exists
+from pathlib import Path
+import uuid
 import supersuit as ss
 from stable_baselines3 import PPO
 from stable_baselines3.ppo import MlpPolicy
+from stable_baselines3.common.callbacks import CheckpointCallback
 from pettingzoo.utils import parallel_to_aec
-
+from stable_baselines3.common.callbacks import CheckpointCallback
 from wedding_gossip_env import wedding_gossip_environment_v2
 
 
@@ -17,40 +23,41 @@ def train_wedding(
 ):
     # Train a single model to play as each agent in a cooperative Parallel environment
     env = env_fn.WeddingGossipEnvironment(**env_kwargs)
-
     env.reset(seed=seed)
 
     print(f"Starting training on {str(env.metadata['name'])}.")
 
+    num_cpu = 4
     env = ss.pettingzoo_env_to_vec_env_v1(env)
-    env = ss.concat_vec_envs_v1(env, 8, num_cpus=2, base_class="stable_baselines3")
+    env = ss.concat_vec_envs_v1(env, num_cpu, num_cpus=num_cpu, base_class="stable_baselines3")
 
-    file_name = max(
-            glob.glob(f"{env.unwrapped.metadata['name']}*.zip"), key=os.path.getctime
-    )
+    ep_len = 1024
+    sess_path = Path(f'session_{str(uuid.uuid4())[:8]}')
+    
+    checkpoint_callback = CheckpointCallback(save_freq=ep_len, save_path=sess_path, name_prefix='wedding_v3_4')
 
-    if os.path.exists(file_name):
+    learn_steps = 1
+    file_name = ''
+
+    if os.path.exists(file_name + '.zip'):
         print('\nloading checkpoint')
         model = PPO.load(file_name, env=env)
+        model.rollout_buffer.reset()
     else:
         model = PPO(
             MlpPolicy,
             env,
             verbose=3,
-            learning_rate=1e-3,
-            batch_size=256,
+            learning_rate=2.5e-4,
+            batch_size=32,
+            tensorboard_log = "./wedding_v3_4_tb/"
         )
-        
-    model.learn(total_timesteps=steps)
-
-    model.save(f"{env.unwrapped.metadata.get('name')}_{time.strftime('%Y%m%d-%H%M%S')}")
-
-    print("Model has been saved.")
+    for i in range(learn_steps):
+        model.learn(total_timesteps=steps*num_cpu*270, progress_bar=True, callback=checkpoint_callback)
 
     print(f"Finished training on {str(env.unwrapped.metadata['name'])}.")
 
     env.close()
-
 
 def eval(env_fn, num_games: int = 100, render_mode: str | None = None, **env_kwargs):
     # Evaluate a trained agent vs a random agent
@@ -61,9 +68,10 @@ def eval(env_fn, num_games: int = 100, render_mode: str | None = None, **env_kwa
         f"\nStarting evaluation on {str(env.metadata['name'])} (num_games={num_games}, render_mode={render_mode})"
     )
 
+    file_name = 'session_1d0020b6/'
     try:
         latest_policy = max(
-            glob.glob(f"{env.metadata['name']}*.zip"), key=os.path.getctime
+            glob.glob(f"{file_name}wedding_*.zip"), key=os.path.getctime
         )
     except ValueError:
         print("Policy not found.")
@@ -101,10 +109,8 @@ if __name__ == "__main__":
     env_fn = wedding_gossip_environment_v2
     env_kwargs = {}
 
-    learn_steps = 5
     # Train a model (takes ~3 minutes on GPU)
-    for i in range(learn_steps):
-        train_wedding(env_fn, steps=196_608, seed=0, **env_kwargs)
+    train_wedding(env_fn, steps=1024, seed=0, **env_kwargs)
 
     # Watch 2 games
-    eval(env_fn, num_games=1, render_mode="human", **env_kwargs)
+    eval(env_fn, num_games=5, render_mode="human", **env_kwargs)
