@@ -141,7 +141,6 @@ class Player():
         #maxGossipRange = 2 if self.priorityGossip.qsize() > 2 else 0
         #gossipNum = random.randint(0, maxGossipRange)
 
-       print("The gossip available based on dict: ", self.track_gossip_value)
        values_ = list(self.track_gossip_value.values())
        if sum(values_) == 0:
            gossip = random.choice(list(self.track_gossip_value.keys()))
@@ -169,7 +168,7 @@ class Player():
             return 'move', self.emptySeats
 
         # talk
-        if self.currGossip/180 > random.random():
+        if self.currGossip/360 < random.random():
 
             # left
             if direction == 0:
@@ -228,12 +227,6 @@ class Player():
 
         pass
     
-    def decide_to_talk(self, gossip): #decide whether to talk or listen 
-        threshold = 40
-        heuristic = gossip + .125*self.turns
-        if heuristic > threshold:
-            return True
-        return False
     
     def track_retirement(self, key_):
        if key_ not in self.track_gossip_value:
@@ -252,3 +245,4 @@ class Player():
 
 
        self.track_gossip_value = dict(sorted(self.track_gossip_value.items(), key=lambda item: item[1]))
+       #print(self.track_gossip_value)
