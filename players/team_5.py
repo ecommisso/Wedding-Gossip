@@ -177,7 +177,7 @@ class Player():
 
     def _get_agent_obs(self):
         obs = np.concatenate((
-            [self.gossip_list[self.gossip_i]],
+            [self.gossip_list[self.gossip_i]-1],
             [self.time_stamp],
             self.state,
             self.mem_buf
