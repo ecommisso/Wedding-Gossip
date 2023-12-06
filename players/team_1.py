@@ -1,6 +1,6 @@
 import random
 
-RANDOM_TALK_PROB = 60
+RANDOM_TALK_PROB = 85  # based on testing
 class Player():
     def __init__(self, id, team_num, table_num, seat_num, unique_gossip, color, turns):
         self.id = id
