@@ -15,6 +15,7 @@ class Player():
         self.group_score = 0
         self.individual_score = 0
         self.total_game_turns = turns
+        self.recycle_gossip = False
 
         self.turn = 0  # track the turn number
         self.shake_pct = 0  # tracks the pct of shakes in the last listen
@@ -100,7 +101,7 @@ class Player():
         # so that it doesn't keep trying to go to the first few tables
         # random.shuffle(sorted_seats.values())
         return final_seats
-
+    
     def __move(self):
         self.shake_pct = 0
         return 'move', self.__find_empty_seat()
@@ -138,17 +139,30 @@ class Player():
                 shakes += 1
                 self.current_gossip.add_shake(int(response[11:]), self.turn)
                 self.other_players[int(response[11:])].interactions += 1
+        # no feedback
         if nods == 0 and shakes == 0:
             self.shake_pct = 0
+        # calculate % of shakes
         else:
             self.shake_pct = shakes/(nods + shakes)
-        if self.shake_pct == 1 and len(self.gossip_list) > 1:
-            self.archive_gossip_list.append(self.gossip_list.pop(0))
-#        if self.shake_pct == 1:
-#            if len(self.gossip_list) == 1:
-#                self.gossip_list = self.archive_gossip_list
-#            else:
-#                self.gossip_list.pop(0)
+        # if all feedback is shakes
+        if self.shake_pct == 1:
+            # not recycling
+            if not self.recycle_gossip:
+                # run out of gossip
+                if len(self.gossip_list) == 1:
+                    return
+                # retire
+                else:
+                    self.gossip_list.pop(0)
+            # recycling
+            else:
+                # retire gossip
+                self.archive_gossip_list.append(self.gossip_list.pop(0))
+                # run out of gossip
+                if len(self.gossip_list) == 0:
+                    self.gossip_list += self.archive_gossip_list
+                    self.archive_gossip_list = []
 
     def get_gossip(self, gossip_item, gossip_talker):
         gossip = self.__get_gossip(gossip_item)
@@ -158,7 +172,6 @@ class Player():
             gossip = Gossip(gossip_item)
             gossip.add_heard(gossip_talker, self.turn)
             self.gossip_list.append(gossip)
-            self.archive_gossip_list.append(gossip)
             self.gossip_list.sort(key=lambda x: x.get_item(), reverse=True)
             self.archive_gossip_list.sort(
                 key=lambda x: x.get_item(), reverse=True)
@@ -198,8 +211,6 @@ class Gossip():
         self.heard.append([player, turn])
 
 # keep track of players, how often they talk, move, listen, at what table etc.
-
-
 class OtherPlayer():
     def __init__(self, id: int):
         self.id = id
