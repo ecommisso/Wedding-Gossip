@@ -23,7 +23,7 @@ NONE = 4
 EXPLORE = 1
 
 # Truncation condition
-N_TURNS = 2048
+N_TURNS = 1024
 
 class WeddingGossipEnvironment(ParallelEnv):
     metadata = {"render_modes": ["human"], 
@@ -48,7 +48,7 @@ class WeddingGossipEnvironment(ParallelEnv):
             zip(
                 self.agents,
                 [
-                    MultiDiscrete(np.array([90, 2049] + [3, 91, 5] * 100 * 3))
+                    MultiDiscrete(np.array([90, 1025] + [3, 91, 5] * 100 * 3))
                 ]
                 * 90,
             )

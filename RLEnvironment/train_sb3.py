@@ -68,7 +68,7 @@ def eval(env_fn, num_games: int = 100, render_mode: str | None = None, **env_kwa
         f"\nStarting evaluation on {str(env.metadata['name'])} (num_games={num_games}, render_mode={render_mode})"
     )
 
-    file_name = 'session_a1a031b2/'
+    file_name = 'session_1d0020b6/'
     try:
         latest_policy = max(
             glob.glob(f"{file_name}wedding_*.zip"), key=os.path.getctime
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     env_kwargs = {}
 
     # Train a model (takes ~3 minutes on GPU)
-    train_wedding(env_fn, steps=2048*8, seed=0, **env_kwargs)
+    # train_wedding(env_fn, steps=2048*8, seed=0, **env_kwargs)
 
     # Watch 2 games
-    eval(env_fn, num_games=1, render_mode="human", **env_kwargs)
+    eval(env_fn, num_games=5, render_mode="human", **env_kwargs)
