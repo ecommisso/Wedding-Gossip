@@ -1,8 +1,8 @@
 import random
 
-RANDOM_TALK_PROB = 60
+# RANDOM_TALK_PROB = 60
 class Player():
-    def __init__(self, id, team_num, table_num, seat_num, unique_gossip, color, turns):
+    def __init__(self, id, team_num, table_num, seat_num, unique_gossip, color, turns, seed, prob):
         self.id = id
         self.team_num = team_num
         self.table_num = table_num
@@ -12,6 +12,7 @@ class Player():
         self.gossip_list = [unique_gossip]
         self.group_score = 0
         self.individual_score = 0
+        self.turns = turns
 
         # player to knowledge map
         self.player_gossip_map = {}
@@ -40,6 +41,13 @@ class Player():
 
         self.talk_actions = ['left', 'right']
         self.listen_actions = ['right', 'left']
+
+        self.talk_count = 0
+        self.listen_count = 0
+        self.move_count = 0
+
+        self.RANDOM_TALK_PROB = prob
+        # print("RANDOM TALK PROB: ", self.RANDOM_TALK_PROB)
 
 
     # At the beginning of a turn, players should be told who is sitting where, so that they can use that info to decide if/where to move
@@ -144,13 +152,21 @@ class Player():
         # gossip to share if talking this turn
         gossip = self.get_gossip_to_share(direction)
 
+        # if self.turn_counter == self.turns:
+        #     print("=======================================")
+        #     print("talk count", self.talk_count/self.turns)
+        #     print("listen count", self.listen_count/self.turns)
+        #     print("move count", self.move_count/self.turns)
+
         # on the first turn of game, players with high gossip should talk
         if self.turn_counter == 1:
 
             # at this point, they should only have 1 piece of gossip
             if gossip:
                 self.recent_gossip_shared = gossip
+                self.talk_count += 1
                 return 'talk', self.talk_actions[direction], gossip
+            self.listen_count += 1
             return 'listen', self.listen_actions[direction]
 
         else:
@@ -208,16 +224,18 @@ class Player():
                     # reset the actions counts to 2
                     self.action_counts[self.id] = {"talk": {"right": 2, "left": 2}, "listen": {"right": 2, "left": 2}}
 
+                    self.move_count += 1
                     return self.__move_to_empty_seat()
 
                 # check the OTHER side because we will have to talk to the RIGHT next turn for this condition
                 if (listen_count > 1 and self.action_counts[self.id]["talk"][opposite_direction] > 0) or self.action_counts[self.id]["listen"][my_prev_direction] == 0:
 
                     rand_prob = random.randint(0, 100)
-                    if rand_prob < RANDOM_TALK_PROB:
+                    if rand_prob < self.RANDOM_TALK_PROB:
                         self.recent_gossip_shared = gossip
+                        self.talk_count += 1
                         return 'talk', self.talk_actions[direction], gossip
-
+                self.listen_count += 1
                 return 'listen', self.listen_actions[direction]
             elif my_prev_action == "listen":
                 relevant_seats = left_seats if my_prev_direction == "left" else right_seats
@@ -240,7 +258,7 @@ class Player():
                 if self.__check_actions_all_zeroes():
                     # reset the actions counts to 2
                     self.action_counts[self.id] = {"talk": {"right": 2, "left": 2}, "listen": {"right": 2, "left": 2}}
-
+                    self.move_count += 1
                     return self.__move_to_empty_seat()
                 
                 # if self.id == 34:
@@ -251,12 +269,14 @@ class Player():
                     #     print("is now talking in direction: ", self.talk_actions[direction])
 
                     rand_prob = random.randint(0, 100)
-                    if rand_prob < RANDOM_TALK_PROB:
+                    if rand_prob < self.RANDOM_TALK_PROB:
                         self.recent_gossip_shared = gossip
+                        self.talk_count += 1
                         return 'talk', self.talk_actions[direction], gossip
 
                 # if self.id == 34:
                 #     print("is now listening in direction: ", self.listen_actions[direction])
+                self.listen_count += 1
                 return 'listen', self.listen_actions[direction]
                
     # returns tuple of (listen_count, talk_count) based on neighbors seats
@@ -327,7 +347,8 @@ class Player():
         if len(final_gos_list) > 0:
             return random.choice(final_gos_list)
 
-        return max(self.gossip_list)
+        # return max(self.gossip_list)
+        return random.choice(self.gossip_list) # GET BETTER SCORES WITH THIS??? test
 
     # def get_gossip_to_share(self, direction):
     #     potential_gossip = [x for x in self.gossip_list if self.gossip_retire_map[x] > 0]

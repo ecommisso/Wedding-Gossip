@@ -47,7 +47,7 @@ class Player():
         #this function is currently null 
 
         #try:
-        action = player_actions[0]
+        # action = player_actions[0]
             #print("printing player action")
             #print(action)
         #except:

@@ -87,7 +87,7 @@ class Player():
         for gossip in self.gossip_list:
             if len(gossip.shakes) < 30:
                 return gossip
-        return gossip[0]
+        return self.gossip_list[0]
 
     def feedback(self, feedback):
         # log each feedback for current gossip

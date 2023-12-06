@@ -26,7 +26,7 @@ class Table():
         self.seats = [[-1, -1]] * 10
 
 class WeddingGossip():
-    def __init__(self, args):
+    def __init__(self, args, seed, prob):
         # list of player groups
         self.player_teams = args.teams
 
@@ -36,6 +36,11 @@ class WeddingGossip():
         
         shutil.rmtree('logs')
         os.mkdir('logs')
+
+        # params
+        self.seed = seed
+        self.prob = prob
+
 
         # log file
         self.log = os.path.join("logs", "log.txt")
@@ -100,6 +105,11 @@ class WeddingGossip():
         # list of individual scores
         self.individual_scores = np.zeros(len(self.player_states))
 
+        ## added
+
+        self.team_1_score = 0
+
+
         # checks
         if args.gui == "False" or args.gui == "false":
             self.gui = False
@@ -122,7 +132,7 @@ class WeddingGossip():
         os.mkdir("logs")
 
         # seed
-        random.seed(int(args.seed))
+        random.seed(seed)
 
         # log files
         self.log = os.path.join("logs", "logs.txt")
@@ -163,7 +173,7 @@ class WeddingGossip():
             self.tables[table_num].seats[seat_num] = [id, team_num]
 
             if team_num == 1:
-                self.shuffled_players.append(Player1(id, team_num, table_num, seat_num, gossip, color, self.T))
+                self.shuffled_players.append(Player1(id, team_num, table_num, seat_num, gossip, color, self.T, self.seed, self.prob))
                 self.shuffled_player_states.append(PlayerState(id, team_num, table_num, seat_num, gossip, color))
             elif team_num == 2:
                 self.shuffled_players.append(Player2(id, team_num, table_num, seat_num, gossip, color, self.T))
@@ -500,6 +510,8 @@ class WeddingGossip():
                     total += 1
 
                 avg_scores[team] = round(total_score / total, 2)
+
+            self.team_1_score = avg_scores[1]
 
             sorted_avg_scores = sorted(avg_scores.items(), key=lambda x:x[1])[::-1]
             for team, score in sorted_avg_scores:
