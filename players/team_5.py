@@ -18,7 +18,7 @@ from pettingzoo.utils import parallel_to_aec
 
 from RLEnvironment.wedding_gossip_env import wedding_gossip_environment_v1
 
-CHECKPOINT_PATH="RLEnvironment/session_19e04d79/"
+CHECKPOINT_PATH="RLEnvironment/session_7aa24ecb/"
 ENV_NAME="wedding_"
 
 class Player():
@@ -36,9 +36,18 @@ class Player():
         self.individual_score = 0
         self.turns_num = turns
 
+        # player id to seat id
+        self.pos = []
+
+        # observation space vars
+        self.time_stamp = 0
         self.gossip_i = 0
-        self.seats = [90] * 100
-        self.feedbacks = [0, 0]
+        self.seats = None
+        self.obs_actions = [4 for _ in range(100)] 
+        self.mem_buf = np.array([0, 90, 4] * 200)
+        self.pos_mem = (None, None)
+        self.state = None
+
 
         """
         # each tuple stores the following for seat 'seat_num' at table 'table_num'
@@ -60,16 +69,6 @@ class Player():
                               ('listen', 'left'): 3,
                               ('listen', 'right'): 4}
         """
-
-        # update it at every step! (currently updating it when the 'observe_after_turn' is called)
-        self.time_stamp = 0
-        
-        self.observations = {'self_pos': self.seat_id,
-                             'curr_goss': unique_gossip,
-                             'seating': [-1] * 90,
-                             'nods': 0,
-                             'shakes': 0}
-
         self.action_to_val_map = {'listen-left':    0,
                                   'listen-right':   1,
                                   'talk-left':      2,
@@ -91,6 +90,7 @@ class Player():
             print("Policy not found.")
             exit(0)
 
+        print(f"loading {latest_policy}")
         # load the trained model
         self.model = PPO.load(latest_policy)
 
@@ -100,16 +100,15 @@ class Player():
         """
             player_positions - 3-dimensional tuple: (player_id, table_num, seat_num)
         """
-        self.seats = [90 for _ in range(100)]
-        # update the observations['seating']
+        self.seats = [90] * 100
         for inst in player_positions:
-            self.observations['seating'][inst[0]] = inst[1] * 10 + inst[2]
+            self.pos[inst[0]] = inst[1] * 10 + inst[2]
             self.seats[inst[1] * 10 + inst[2]] = inst[0]
         
         # also update current seat_id, table_num, seat_num etc. 
-        self.seat_id   = self.observations['seating'][self.id]
-        self.table_num = self.observations['seating'][self.id] // 10
-        self.seat_num  = self.observations['seating'][self.id] % 10
+        self.seat_id   = self.pos[self.id]
+        self.table_num = self.seat_id // 10
+        self.seat_num  = self.seat_id % 10
 
     # At the end of a turn, players should be told what everybody at their current table (who was there at the start of the turn)
     # did (i.e., talked/listened and in what direction)
@@ -120,13 +119,12 @@ class Player():
         # update the global timer
         self.time_stamp += 1
 
-        # update the observations['action']
-        # reset everthing to 4 i.e. none first
-        # self.observations['actions'] = [4] * 90
-        # for inst in player_actions:
-        #    self.observations['actions'][inst[0]] = self.action_to_val_map[inst[1][0] + '-' + inst[1][1]]
-        
-        # for seat_id in range(self.table_num * 10, self.table_num * 10 + 10):
+        self.obs_actions = [4 for _ in range(100)]
+        for inst in player_actions:
+            seat = self.pos[inst[0]]
+            self.obs_actions[seat] = self.action_to_val_map[inst[1][0] + '-' + inst[1][1]]
+
+        self._update_memory()
 
     def get_action(self):
         # return 'talk', 'left', <gossip_number>
@@ -134,18 +132,18 @@ class Player():
         # return 'listen', 'left', 
         # return 'listen', 'right', 
         # return 'move', priority_list: [[table number, seat number] ...]
-        curr_goss = self.gossip_list[self.gossip_i]-1
-        observation = np.array(
-                [self.seat_id, curr_goss] +
-                self.seats + 
-                self.feedbacks +
-                [self.time_stamp]
-        )
-        action, switch, pref = self.model.predict(observation)[0]
-        # print(f"Player {self.id}: current gossip {curr_goss}, action space {action, switch, pref}")
+        
+        self.state = self._get_curr_state()
 
-        if switch and self.gossip_i < len(self.gossip_list) - 1:
-            self.gossip_i += 1
+        observation = self._get_agent_obs()
+
+        action, switch, _ = self.model.predict(observation)[0]
+
+        if switch == 1:
+            self.gossip_i = min(len(self.gossip_list) - 1, i + 1)
+        elif switch == 2:
+            self.gossip_i = max(0, i - 1)
+
         if action < 2:
             return self.num_action_map[action][0], self.num_action_map[action][1]
         elif action < 4:
@@ -153,16 +151,50 @@ class Player():
             return self.num_action_map[action][0], self.num_action_map[action][1], goss
         else:
             empty = self._get_empty()
-            empty[0], empty[pref] = empty[pref], empty[0]
+            random.shuffle(empty)
             return self.num_action_map[action], empty
         
+    def _update_memory(self):
+        self.mem_buf = np.concatenate((self.state, self.mem_buf[:300]))
+        self.pos_mem = self.pos, self.pos_mem[0]
+
     def _get_empty(self):
         ret = []
         for seat in range(100):
-            if seat not in self.observations['seating']:
+            if seat not in self.pos:
                 ret.append([seat//10, seat%10])
 
         return ret
+
+    def _get_curr_state(self):
+        state = np.array([], dtype=np.int64)
+        for i in range(100):
+            seat_state = [0, self.seats[i], self.obs_actions[i]]
+            state = np.concatenate((state, seat_state))
+
+        return state
+
+    def _get_agent_obs(self):
+        obs = np.concatenate((
+            [self.gossip_list[self.gossip_i]],
+            [self.time_stamp],
+            self.state,
+            self.mem_buf
+        ))
+        # set is_neighbor bit
+        hist = self.seat_id, self.pos_mem[0], self.pos_mem[1]
+        for i, p in enumerate(hist):
+            if p:
+                for nbr in range(1,4):
+                    lnbr = (p // 10 * 10) + ((p - nbr) % 10)
+                    rnbr = (p // 10 * 10) + ((p + nbr) % 10)
+                    obs[2 + lnbr * 3 + i * 300] = 1
+                    obs[2 + rnbr * 3 + i * 300] = 1
+
+                obs[2 + p * 3 + i * 300] = 2
+
+        return obs
+
 
     def feedback(self, feedback):
         # print('Feedback:', feedback)
