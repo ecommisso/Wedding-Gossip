@@ -19,7 +19,7 @@ from pettingzoo.utils import parallel_to_aec
 from RLEnvironment.wedding_gossip_env import wedding_gossip_environment_v1
 
 CHECKPOINT_PATH="RLEnvironment/session_7aa24ecb/"
-ENV_NAME="wedding_"
+ENV_NAME="wedding_2946240"
 
 class Player():
     def __init__(self, id, team_num, table_num, seat_num, unique_gossip, color, turns):
@@ -37,7 +37,7 @@ class Player():
         self.turns_num = turns
 
         # player id to seat id
-        self.pos = []
+        self.pos = [0 for _ in range(90)]
 
         # observation space vars
         self.time_stamp = 0
