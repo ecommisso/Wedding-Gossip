@@ -157,7 +157,7 @@ class Player():
         
     def _update_memory(self):
         self.mem_buf = np.concatenate((self.state, self.mem_buf[:300]))
-        self.pos_mem = self.pos, self.pos_mem[0]
+        self.pos_mem = self.seat_id, self.pos_mem[0]
 
     def _get_empty(self):
         ret = []
