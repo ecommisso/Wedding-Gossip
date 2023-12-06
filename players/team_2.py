@@ -21,6 +21,8 @@ class Player():
         self.group_score = 0
         self.individual_score = 0
         self.total_rounds = turns 
+        self.table_talk_count = 0 
+
         #dictionary template -> dict3 = {'gossip_shared': '15,16,77', 'gossip_score': 55}
         #dictionary_temp = {'gossip_shared': [], 'gossip_score': unique_gossip}
         #list of dictionaries 
@@ -55,7 +57,15 @@ class Player():
         #except:
             #print("there are no player actions ")
         #if action != "":
-            
+        # list of lists, each of which is [player_id, action_type, direction] (CCW = right, CW = left)
+        numtalk = 0
+        for play in player_actions:
+            action = play[1][0]
+            #print("action is")
+            #print(action)
+            if action == "talk":
+                numtalk += 1
+        self.table_talk_count = numtalk
         
         
         '''my_action = "talk"
@@ -221,6 +231,23 @@ class Player():
     def decide_torl(self,gossip_heuristic): #decide whether to talk or listen 
         #dunction balance between heuristic and round number 
         #if gossip_heuristic is higher 
+        #print("this is the special case where table count is " + str(self.table_talk_count) )
+        if self.table_talk_count > 6: 
+            '''getting too high so random'''
+            decision = random.randint(0, 60)
+            if decision > 20:
+                #print("this is the special case")
+                return 'listen', 0   
+            else:
+                sorted_gossip = self.good_gossips
+                top_vals = math.floor(len(sorted_gossip)/5)  #maybe as game goes on we adjust this?
+                random_index = random.randint(0, top_vals)
+                gossip_return = sorted_gossip[random_index]
+                #print("the gossip value player number " + str(self.id) + " is sharing is:" + str(gossip_return))
+                self.last_gsp_shared = gossip_return
+                return 'talk', gossip_return
+
+
         round_num = self.round_number
         thresh_value = 45 
         #right now linear - but may make more logarithmic or exponential 
@@ -230,12 +257,14 @@ class Player():
         #to allow for range of 27 cuz acerage of top has a max of about 88
         #once we get a round number 
         #increment = 27/numrounds 
-        increment = float(float(7.25)/self.total_rounds)
+        #increment = float(float(30)/(self.total_rounds**5))
+        increment = float(float(7.25)/(self.total_rounds))
         #increment = .15 
         #print("the value of the increment is " + str(increment))
-        thresh = thresh_value + increment*round_num
+        #thresh = thresh_value + increment*(round_num**5)
+        thresh = thresh_value + increment*(round_num)
         #print("this is the value:" + str(heuristic))
-        #print("this is the thresh value:" + str(thresh))'''
+        #print("this is the thresh value:" + str(thresh))
         if heuristic > thresh:
             #pick a value 
             #take top 1/3 of scores stored 
