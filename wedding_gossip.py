@@ -7,6 +7,7 @@ import numpy as np
 import os
 import shutil
 from PIL import Image,ImageTk
+import sys
 
 import constants
 from players.default_player import Player as DefaultPlayer
@@ -86,6 +87,7 @@ class WeddingGossip():
 
         # number of turns
         self.T = int(args.turns)
+        self.run = int(args.run)
         self.turn = 1
 
         # time interval in ms for gui update
@@ -111,6 +113,8 @@ class WeddingGossip():
         # game state
         self.game_state = "resume"
 
+        self.results = {}
+
         # ui angle config
         self.right_talk_angle = [[18, 324], [54, 324], [90, 324], [126, 324], [162, 324], [198, 324], [234, 324], [270, 324], [306, 324], [342, 324]]
         self.left_talk_angle = [[198, 324], [234, 324], [270, 324], [306, 324], [342, 324], [18, 324], [54, 324], [90, 324], [126, 324], [162, 324]]
@@ -122,6 +126,7 @@ class WeddingGossip():
         os.mkdir("logs")
 
         # seed
+        self.seed = int(args.seed)
         random.seed(int(args.seed))
 
         # log files
@@ -136,7 +141,7 @@ class WeddingGossip():
             self.root.mainloop()
             self.root2.mainloop()
         else:
-            self._play_game()
+            self._no_gui_play_game()
 
     def _game_config(self, players):
         total_seats = list(range(100))
@@ -442,7 +447,7 @@ class WeddingGossip():
                     self.player_states[index].table_num = table_num
                     self.player_states[index].seat_num = seat_num
 
-                    self.attendee_logs[index] += " Moved to Table Num: " + str(table_num) + " Seat Num: " + str(seat_num)
+                    # self.attendee_logs[index] += " Moved to Table Num: " + str(table_num) + " Seat Num: " + str(seat_num)
                     return 1
         return 0
 
@@ -470,6 +475,9 @@ class WeddingGossip():
                     player_actions.append(action)
 
         return player_actions
+
+    def get_results(self):
+        return self.results
 
     def _play_game(self):
         self.attendee_logs = []
@@ -500,8 +508,8 @@ class WeddingGossip():
 
                 avg_scores[team] = round(total_score / total, 2)
 
-            sorted_avg_scores = sorted(avg_scores.items(), key=lambda x:x[1])[::-1]
-            for team, score in sorted_avg_scores:
+            # sorted_avg_scores = sorted(avg_scores.items(), key=lambda x:x[1])[::-1]
+            for team, score in avg_scores.items():
                 with open(self.result, 'a') as f:
                     f.write("Team " + str(team) + ": " + str(score) + "\n")
 
@@ -511,6 +519,8 @@ class WeddingGossip():
                 with open(self.result, 'a') as f:
                     f.write("Attendee: " + str(player_state.id) + " Team: " + str(player_state.team_num) + " Individual Score: " + str(player_state.individual_score) + " Initial Gossip: " + str(player_state.initial_gossip) + "\n")
 
+            self.results["team_scores"] = avg_scores
+            self.results["group_score"] = round(self.group_score / 90, 2)
 
         if self.game_state != "over":
             action_list = []
@@ -728,3 +738,241 @@ class WeddingGossip():
                     self.root.after(self.interval, self._play_game)
                 else:
                     self._play_game()
+
+    def _no_gui_play_game(self):
+        scores = {}
+        avg_scores = {}
+
+        while self.game_state != "over":
+            if self.turn > self.T:
+                self.game_state = "over"
+                with open(self.result, 'a') as f:
+                    f.write("Results\n")
+                    f.write("Group Score: " + str(round(self.group_score / 90, 2)) + "\n")
+
+                for index, player_state in enumerate(self.player_states):
+                    team_num = player_state.team_num
+                    if team_num in scores.keys():
+                        scores[team_num].append(player_state.individual_score)
+                    else:
+                        scores[team_num] = [player_state.individual_score]
+
+                with open(self.result, 'a') as f:
+                    f.write("\n\n\nAverage Team Scores\n")
+
+                for team in sorted(scores.keys()):
+                    total = 0
+                    total_score = 0
+                    for score in scores[team]:
+                        total_score += score
+                        total += 1
+
+                    avg_scores[team] = round(total_score / total, 2)
+
+                # sorted_avg_scores = sorted(avg_scores.items(), key=lambda x:x[1])[::-1]
+                for team, score in avg_scores.items():
+                    with open(self.result, 'a') as f:
+                        f.write("Team " + str(team) + ": " + str(score) + "\n")
+
+                with open(self.result, 'a') as f:
+                    f.write("\n\n\nAttendee Scores\n")
+                for index, player_state in enumerate(self.player_states):
+                    with open(self.result, 'a') as f:
+                        f.write("Attendee: " + str(player_state.id) + " Team: " + str(player_state.team_num) + " Individual Score: " + str(player_state.individual_score) + " Initial Gossip: " + str(player_state.initial_gossip) + "\n")
+
+                self.results["team_scores"] = avg_scores
+                self.results["group_score"] = round(self.group_score / 90, 2)
+                return
+            
+            print(self.run, self.seed,self.T, self.turn)
+            action_list = []
+            feedback = [[] for _ in range(len(self.player_states))]
+            move_players = []
+            self.check_move = [0] * 90
+
+            player_positions = self.get_player_positions()
+
+            with open(self.log, 'a') as f:
+                f.write("Turn: " + str(self.turn) + "\n")
+
+            for index, player in enumerate(self.players):
+                # get action
+                self.player_states[index].curr_state = ""
+                start_time = time.time()
+                player.observe_before_turn(player_positions)
+                action = player.get_action()
+                end_time = time.time()
+                action_type = action[0]
+                if action_type == 'talk':
+                    direction = action[1]
+                    gossip = action[2]
+                    self.player_states[index].curr_state = str(gossip)
+                    self.player_states[index].direction = direction
+
+                    # check if gossip to share is present in the player's gossip list
+                    if gossip not in self.player_states[index].gossip_list:
+                        action_list.append(["invalid action"])
+                        self.player_states[index].curr_state = ""
+                    else:
+                        action_list.append(action)
+                        self.player_states[index].action = action
+
+                elif action_type == 'move':
+                    priority_list = action[1]
+                    move_players.append([index, priority_list])
+                    action_list.append(action)
+                    self.player_states[index].action = action
+                elif action_type == 'listen':
+                    action_list.append(action)
+                    self.player_states[index].action = action
+                else:
+                    action_list.append(["invalid action"])
+                
+            for index, action in enumerate(action_list):
+                action_type = action[0]
+                if action_type == 'listen':
+                    direction = action[1]
+
+                    if direction == 'left':
+                        self.player_states[index].direction = direction
+                        table_num = self.player_states[index].table_num
+                        seat_num = self.player_states[index].seat_num
+
+                        table = self.tables[table_num]
+                        seats = table.seats
+
+                        left_positions = [(seat_num - 1) % 10, (seat_num - 2) % 10, (seat_num - 3) % 10]
+                        left_player_ids = []
+                        left_player_actions = []
+                        for pos in left_positions:
+                            lp_id = seats[pos][0]
+                            if lp_id != -1:
+                                if action_list[lp_id][0] == 'talk':
+                                    if action_list[lp_id][1] == 'right':
+                                        left_player_ids.append(lp_id)
+                                        left_player_actions.append(action_list[lp_id])
+                        
+                        # highest gossip value
+                        highest_gossip_val = -1
+                        highest_gossip_talker = -1
+
+                        # highest gossip value that is new to the listening player
+                        new_gossip_val = -1
+                        new_gossip_talker = -1
+
+                        for lp_index, lp_action in enumerate(left_player_actions):
+                            if lp_action[0] == 'talk':
+                                talking_direction = lp_action[1]
+                                gossip_item = int(lp_action[2])
+                                if gossip_item > highest_gossip_val:
+                                    highest_gossip_val = gossip_item
+                                    highest_gossip_talker = left_player_ids[lp_index]
+
+                                if gossip_item not in self.player_states[index].gossip_list and gossip_item > new_gossip_val:
+                                    new_gossip_val = gossip_item
+                                    new_gossip_talker = left_player_ids[lp_index]
+
+                        if new_gossip_val == -1:
+                            # all gossip items from the talking players are not new to the listening player or
+                            # there were no talking players on the left or
+                            # players on the left were talking in the opposite direction
+                            # check is any player was talking in the left direction, if so find the player 
+                            # conveying the gossip item with the highest value'
+                            if highest_gossip_val == -1:
+                                # no player on the left was talking towards the right
+                                # no feedback is returned
+                                pass
+                            else:
+                                # feedback is sent to the talker who has the highest gossip value
+                                feedback[highest_gossip_talker].append("Shake Head " + str(index))
+                                self.player_states[index].curr_state = "S"
+                                
+                        else:
+                            feedback[new_gossip_talker].append("Nod Head " + str(index))
+                            self.player_states[index].curr_state = "N," + str(new_gossip_talker)
+                            self.player_states[new_gossip_talker].individual_score += new_gossip_val
+                            self.group_score += new_gossip_val
+                            self.player_states[index].gossip_list.append(new_gossip_val)
+                            self.players[index].get_gossip(new_gossip_val, new_gossip_talker)
+                            
+                    elif direction == 'right':
+                        self.player_states[index].direction = direction
+                        table_num = self.player_states[index].table_num
+                        seat_num = self.player_states[index].seat_num
+
+                        table = self.tables[table_num]
+                        seats = table.seats
+
+                        right_positions = [(seat_num + 1) % 10, (seat_num + 2) % 10, (seat_num + 3) % 10]
+                        right_player_ids = []
+                        right_player_actions = []
+                        for pos in right_positions:
+                            rp_id = seats[pos][0]
+                            if rp_id != -1:
+                                if action_list[rp_id][0] == 'talk':
+                                    if action_list[rp_id][1] == 'left':
+                                        right_player_ids.append(rp_id)
+                                        right_player_actions.append(action_list[rp_id])
+                        
+                        # highest gossip value
+                        highest_gossip_val = -1
+                        highest_gossip_talker = -1
+
+                        # highest gossip value that is new to the listening player
+                        new_gossip_val = -1
+                        new_gossip_talker = -1
+
+                        for rp_index, rp_action in enumerate(right_player_actions):
+                            if rp_action[0] == 'talk':
+                                talking_direction = rp_action[1]
+                                gossip_item = int(rp_action[2])
+                                if talking_direction == 'left':
+                                    if gossip_item > highest_gossip_val:
+                                        highest_gossip_val = gossip_item
+                                        highest_gossip_talker = right_player_ids[rp_index]
+
+                                    if gossip_item not in self.player_states[index].gossip_list and gossip_item > new_gossip_val:
+                                        new_gossip_val = gossip_item
+                                        new_gossip_talker = right_player_ids[rp_index]
+
+                        if new_gossip_val == -1:
+                            # all gossip items from the talking players are not new to the listening player or
+                            # there were no talking players on the left or
+                            # players on the left were talking in the opposite direction
+                            # check is any player was talking in the left direction, if so find the player 
+                            # conveying the gossip item with the highest value'
+                            if highest_gossip_val == -1:
+                                # no player on the left was talking towards the right
+                                # no feedback is returned
+                                pass
+                            else:
+                                # feedback is sent to the talker who has the highest gossip value
+                                feedback[highest_gossip_talker].append("Shake Head " + str(index))
+                                self.player_states[highest_gossip_talker].curr_state = "S"
+                        else:
+                            feedback[new_gossip_talker].append("Nod Head " + str(index))
+                            self.player_states[index].curr_state = "N," + str(new_gossip_talker)
+                            self.player_states[new_gossip_talker].individual_score += new_gossip_val
+                            self.group_score += new_gossip_val
+                            self.player_states[index].gossip_list.append(new_gossip_val)
+                            self.players[index].get_gossip(new_gossip_val, new_gossip_talker)
+                            
+                elif action_type == 'move':
+                    random.shuffle(move_players)
+
+                    for move in move_players:
+                        player_id = move[0]
+                        priority_list = move[1]
+                        player = self.players[player_id]
+                        self.check_move[player_id] = self.move_player(player_id, player, priority_list)
+            
+            for index, action in enumerate(action_list):
+                action_type = action[0]
+                if action_type == 'talk':
+                    self.players[index].feedback(feedback[index])
+
+            for index, action in enumerate(action_list):
+                player_actions = self.get_player_recent_actions(index)
+                self.players[index].observe_after_turn(player_actions)
+
+            self.turn += 1
