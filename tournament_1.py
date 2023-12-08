@@ -5,7 +5,7 @@ import pandas as pd
 if __name__ == '__main__':
     
     seeds = [1, 2, 3]
-    turns = [1024]
+    turns = [1440]
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--teams", "-teams", default=[1,2], nargs="+", help="Helper Text")

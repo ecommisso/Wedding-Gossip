@@ -17,8 +17,8 @@ if __name__ == '__main__':
     # 18 runs
     run = 1
     seeds = [1, 2, 3]
-    turns = [1024]
-    groups = [[1], [2], [3], [4], [5], [6]]
+    turns = [1440]
+    groups = [[5]]
     run = 1
     for seed in seeds:
         for turn in turns:
