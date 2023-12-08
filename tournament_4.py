@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # configuration 4
     # 210 runs
 
-    seeds = [1, 2]
+    seeds = [2, 3]
     turns = [10, 30, 60, 120, 180, 360]
     groups = [[1, 5], [2, 5], [3, 5], [4, 5], [5, 6]]
     run = 1
