@@ -18,41 +18,44 @@ if __name__ == '__main__':
 
     # configuration 1
     # 21 runs
-    df = pd.DataFrame(columns=["Run", "Seed", "Turns", "Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Group Score"])
-    df.to_csv("config_1.csv")
-    run = 1
-    for seed in seeds:
-        for turn in turns:
-            try:
-                print(run, seed, turn)
-                args.teams=[1, 2, 3, 4, 5, 6]
-                args.seed=seed
-                args.turns=turn
-                args.scale=10
-                args.gui="False"
-                args.interval=1
-                args.run=run
-                wedding_game = WeddingGossip(args)
+    # df = pd.DataFrame(columns=["Run", "Seed", "Turns", "Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Group Score"])
+    # df.to_csv("config_1.csv")
+    # run = 1
+    # for seed in seeds:
+    #     for turn in turns:
+    #         try:
+    #             print(run, seed, turn)
+    #             args.teams=[1, 2, 3, 4, 5, 6]
+    #             args.seed=seed
+    #             args.turns=turn
+    #             args.scale=10
+    #             args.gui="False"
+    #             args.interval=1
+    #             args.run=run
+    #             wedding_game = WeddingGossip(args)
 
-                row = [run, seed, turn]
+    #             row = [run, seed, turn]
 
-                results = wedding_game.get_results()
-                print(results)
-                team_scores = list(results["team_scores"].values())
-                print(team_scores)
-                row.extend(team_scores)
-                group_score = results["group_score"]
-                row.append(group_score)
-                df = pd.DataFrame([row], columns=["Run", "Seed", "Turns", "Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Group Score"])
-                df.to_csv("config_1.csv", mode='a', header=False)
-            except:
-                row = [run, seed, turn, 'Error', 'Error', 'Error', 'Error', 'Error', 'Error', 'Error']
-                df = pd.DataFrame([row], columns=["Run", "Seed", "Turns", "Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Group Score"])
-                df.to_csv("config_1.csv", mode='a', header=False)
-            run += 1
+    #             results = wedding_game.get_results()
+    #             print(results)
+    #             team_scores = list(results["team_scores"].values())
+    #             print(team_scores)
+    #             row.extend(team_scores)
+    #             group_score = results["group_score"]
+    #             row.append(group_score)
+    #             df = pd.DataFrame([row], columns=["Run", "Seed", "Turns", "Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Group Score"])
+    #             df.to_csv("config_1.csv", mode='a', header=False)
+    #         except:
+    #             row = [run, seed, turn, 'Error', 'Error', 'Error', 'Error', 'Error', 'Error', 'Error']
+    #             df = pd.DataFrame([row], columns=["Run", "Seed", "Turns", "Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Group Score"])
+    #             df.to_csv("config_1.csv", mode='a', header=False)
+    #         run += 1
+
+    turns = [1440]
 
     # configuration 4
     # 105 runs
+    run = 1
     groups = [[1, 2], [1, 3], [1, 4], [1, 6],
               [2, 3], [2, 4], [2, 6],
               [3, 4], [3, 6], [4, 6]]
