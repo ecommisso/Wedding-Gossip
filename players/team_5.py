@@ -18,7 +18,7 @@ from pettingzoo.utils import parallel_to_aec
 
 from RLEnvironment.wedding_gossip_env import wedding_gossip_environment_v1
 
-CHECKPOINT_PATH="RLEnvironment/session_8e8edd49/"
+CHECKPOINT_PATH="RLEnvironment/session_7aa24ecb/"
 ENV_NAME="wedding_"
 
 class Player():
